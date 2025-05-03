@@ -11,19 +11,29 @@ import (
 )
 
 func main() {
+	config.LoadEnv()
+	if handleFlags() {
+		return
+	}
+	startServer()
+}
+
+func handleFlags() bool {
+	db := config.ConnectDatabase()
 	seed := flag.Bool("seed", false, "Run database seeder")
 	flag.Parse()
-
-	config.LoadEnv()
-	db := config.ConnectDatabase()
-
 	if *seed {
 		log.Println("Running database seeder...")
 		seeder.SeedDatabase(db)
-		return
+		return true
 	}
+	return false
+}
 
+func startServer() {
 	r := gin.Default()
 	routes.RegisterRoutes(r)
-	r.Run(":" + config.GetPort())
+	port := config.GetPort()
+	log.Printf("Starting server on port %s...", port)
+	r.Run(":" + port)
 }
