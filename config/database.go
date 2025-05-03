@@ -8,7 +8,7 @@ import (
 )
 
 func ConnectDatabase() *gorm.DB {
-	db, err := gorm.Open(mysql.Open(GetEnv("DB_DSN", "")), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(GetDbDsn()), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %s", err)
 	}

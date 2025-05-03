@@ -19,11 +19,11 @@ func main() {
 
 	if *seed {
 		log.Println("Running database seeder...")
-		seeder.SeedDatabase()
+		seeder.SeedDatabase(db)
 		return
 	}
 
 	r := gin.Default()
 	routes.RegisterRoutes(r)
-	r.Run(":" + config.GetEnv("PORT", "8080"))
+	r.Run(":" + config.GetPort())
 }
