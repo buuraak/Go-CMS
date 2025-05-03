@@ -1,14 +1,13 @@
 package seeder
 
 import (
-	"go-cms/config"
 	"go-cms/models"
 	"log"
+
+	"gorm.io/gorm"
 )
 
-func SeedDatabase() {
-	db := config.ConnectDatabase()
-
+func SeedDatabase(db *gorm.DB) {
 	err := db.AutoMigrate(&models.User{})
 	if err != nil {
 		log.Fatalf("Failed to migrate User model: %s", err)

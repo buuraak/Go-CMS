@@ -15,6 +15,7 @@ func main() {
 	flag.Parse()
 
 	config.LoadEnv()
+	db := config.ConnectDatabase()
 
 	if *seed {
 		log.Println("Running database seeder...")
