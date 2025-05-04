@@ -8,18 +8,19 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func main() {
 	config.LoadEnv()
-	if handleFlags() {
+	db := config.ConnectDatabase()
+	if handleFlags(db) {
 		return
 	}
-	startServer()
+	startServer(db)
 }
 
-func handleFlags() bool {
-	db := config.ConnectDatabase()
+func handleFlags(db *gorm.DB) bool {
 	seed := flag.Bool("seed", false, "Run database seeder")
 	flag.Parse()
 	if *seed {
@@ -30,10 +31,10 @@ func handleFlags() bool {
 	return false
 }
 
-func startServer() {
+func startServer(db *gorm.DB) {
 	r := gin.Default()
-	routes.RegisterRoutes(r)
+	routes.RegisterRoutes(r, db)
 	port := config.GetPort()
-	log.Printf("Starting server on port %s...", port)
+	log.Printf("Starting server on port %s", port)
 	r.Run(":" + port)
 }
