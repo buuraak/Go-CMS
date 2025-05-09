@@ -2,6 +2,7 @@ package routes
 
 import (
 	"go-cms/controllers"
+	"go-cms/middlewares"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -10,6 +11,7 @@ import (
 func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 	registerHomeRoutes(r)
 	registerAPIRoutes(r, db)
+	registerAuthRoutes(r, db)
 }
 
 func registerHomeRoutes(r *gin.Engine) {
@@ -22,8 +24,17 @@ func registerAPIRoutes(r *gin.Engine, db *gorm.DB) {
 	// post endpoints
 	api.GET("/posts", controllers.GetPosts)
 
-	// User endpoints
-	api.GET("/users/:user", func(c *gin.Context) {
+	// User endpoints, these endpoints are JWT protected.
+	userRoutes := api.Group("/users")
+	userRoutes.Use(middlewares.JWTAuthMiddleware())
+	userRoutes.GET("/:user", func(c *gin.Context) {
 		controllers.GetUser(c, db)
+	})
+}
+
+func registerAuthRoutes(r *gin.Engine, db *gorm.DB) {
+	auth := r.Group("/auth")
+	auth.POST("/login", func(c *gin.Context) {
+		controllers.Login(c, db)
 	})
 }
