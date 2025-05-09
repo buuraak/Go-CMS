@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"go-cms/config"
+	"go-cms/helpers"
 	"go-cms/models"
 	"log"
 	"net/http"
@@ -65,7 +66,7 @@ func Login(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	if user.Password != input.Password {
+	if err := helpers.CheckPassword(user.Password, input.Password); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
 		return
 	}
@@ -84,4 +85,95 @@ func Login(c *gin.Context, db *gorm.DB) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"token": tokenString})
+}
+
+func RegisterUser(c *gin.Context, db *gorm.DB) {
+	var input struct {
+		Username  string `json:"username" binding:"required"`
+		Password  string `json:"password" binding:"required"`
+		Email     string `json:"email" binding:"required"`
+		FirstName string `json:"first_name" binding:"required"`
+		LastName  string `json:"last_name" binding:"required"`
+		Role      string `json:"role" binding:"required,oneof=admin editor customer"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	hashedPassword, err := helpers.HashPassword(input.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		return
+	}
+
+	var user models.User
+
+	if err := db.Where("username = ?", input.Username).First(&user).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username already exists"})
+		return
+	} else if err != gorm.ErrRecordNotFound {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error whilst checking for username"})
+		return
+	}
+
+	if err := db.Where("email = ?", input.Email).First(&user).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already exists"})
+		return
+	} else if err != gorm.ErrRecordNotFound {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error whilst checking for email"})
+		return
+	}
+
+	verificationToken, err := helpers.GenerateVerificationToken()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate verification token"})
+	}
+
+	user = models.User{
+		Username:          input.Username,
+		Password:          hashedPassword,
+		Email:             input.Email,
+		FirstName:         input.FirstName,
+		LastName:          input.LastName,
+		Role:              input.Role,
+		VerificationToken: verificationToken,
+	}
+
+	if err := db.Create(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		log.Fatal(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User registered succesfully"})
+}
+
+func VerifyUser(c *gin.Context, db *gorm.DB) {
+	token := c.Query("token")
+
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "verification token is missing"})
+		return
+	}
+
+	var user models.User
+	if err := db.Where("verification_token = ?", token).First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User does not exist"})
+			return
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error whilst trying to verify user"})
+			return
+		}
+	}
+
+	user.IsVerified = true
+	user.VerificationToken = ""
+	if err := db.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify user"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "User verified successfully"})
 }
