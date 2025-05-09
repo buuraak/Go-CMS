@@ -19,12 +19,11 @@ func registerHomeRoutes(r *gin.Engine) {
 }
 
 func registerAPIRoutes(r *gin.Engine, db *gorm.DB) {
-
 	api := r.Group("/api/v1")
-	// post endpoints
-	api.GET("/posts", controllers.GetPosts)
 
-	// User endpoints, these endpoints are JWT protected.
+	postRoutes := api.Group("/posts")
+	postRoutes.GET("/all", controllers.GetPosts)
+
 	userRoutes := api.Group("/users")
 	userRoutes.Use(middlewares.JWTAuthMiddleware())
 	userRoutes.GET("/:user", func(c *gin.Context) {
@@ -36,5 +35,11 @@ func registerAuthRoutes(r *gin.Engine, db *gorm.DB) {
 	auth := r.Group("/auth")
 	auth.POST("/login", func(c *gin.Context) {
 		controllers.Login(c, db)
+	})
+	auth.POST("/register", func(c *gin.Context) {
+		controllers.RegisterUser(c, db)
+	})
+	auth.POST("/verify", func(c *gin.Context) {
+		controllers.VerifyUser(c, db)
 	})
 }
