@@ -5,15 +5,12 @@ go 1.23.0
 toolchain go1.24.2
 
 require (
-	github.com/gin-gonic/gin v1.10.0 // direct
-	github.com/joho/godotenv v1.5.1 // direct
-	gorm.io/gorm v1.26.0 //direct
-	golang.org/x/crypto v0.33.0 //direct
-)
-
-require (
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	gorm.io/driver/mysql v1.5.7
+	github.com/gin-gonic/gin v1.10.0
+	github.com/joho/godotenv v1.5.1
+	gorm.io/gorm v1.26.0
+	golang.org/x/crypto v0.33.0
 )
 
 require (
